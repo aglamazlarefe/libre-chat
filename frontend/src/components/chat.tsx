@@ -65,12 +65,13 @@ export default function Chat() {
         setWarningMsg("");
 
         const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(params)
-        });
-        const data = await response.json();
-        appendMessage(data?.message || "No response", "bot");
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt: prompt() })
+});
+const data = await response.json();
+console.log("Backend yanıtı:", data); // buraya bak
+appendMessage(data?.message || data?.result || "No response", "bot");
       } catch (err) {
         console.error(err);
         appendMessage("An error happened, please retry.", "bot");
