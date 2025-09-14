@@ -50,36 +50,49 @@ export default function Chat() {
     }
   }
 
-  async function submitInput() {
-    if (loading()) {
-      setWarningMsg("⏳ Thinking...");
-      return;
-    }
-    if (prompt().trim() !== "") {
-      appendMessage(prompt(), "user");
-      const params = { prompt: prompt() };
-
-      try {
-        setLoading(true);
-        setPrompt("");
-        setWarningMsg("");
-
-        const response = await fetch(apiUrl, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ prompt: prompt() })
-});
-const data = await response.json();
-console.log("Backend yanıtı:", data); // buraya bak
-appendMessage(data?.message || data?.result || "No response", "bot");
-      } catch (err) {
-        console.error(err);
-        appendMessage("An error happened, please retry.", "bot");
-      } finally {
-        setLoading(false);
-      }
-    }
+async function submitInput() {
+  if (loading()) {
+    setWarningMsg("⏳ Thinking...");
+    return;
   }
+
+  const trimmedPrompt = prompt().trim();
+  if (!trimmedPrompt) {
+    setWarningMsg("Lütfen bir mesaj yazın.");
+    return;
+  }
+
+  appendMessage(trimmedPrompt, "user");
+  setLoading(true);
+  setWarningMsg("");
+  console.log("API URL kullanılıyor:", apiUrl);
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-120b:free",
+        messages: [{ role: "user", content: trimmedPrompt }]
+      })
+    });
+
+    const data = await response.json();
+    console.log("Backend yanıtı:", data);
+
+    // OpenRouter yanıtındaki mesaj içeriğini alıyoruz
+    const botMessage = data?.choices?.[0]?.message?.content || "No response";
+    appendMessage(botMessage, "bot");
+
+  } catch (err) {
+    console.error(err);
+    appendMessage("An error happened, please retry.", "bot");
+  } finally {
+    setLoading(false);
+    setPrompt("");
+  }
+}
+
 
   onMount(() => {
     chatContainer?.scrollTo({ top: chatContainer.scrollHeight });
@@ -89,7 +102,6 @@ appendMessage(data?.message || data?.result || "No response", "bot");
     <main class="flex flex-col h-full overflow-hidden p-4 bg-gray-50 dark:bg-gray-900">
       <div ref={chatContainer} class="flex-grow overflow-y-auto p-4 bg-gray-100 dark:bg-gray-800 rounded-md shadow-inner mb-4">
         <div class="max-w-3xl mx-auto">
-          
           <For each={messages()}>
             {(msg) =>
               <div class={`mb-2 p-3 rounded-lg max-w-[75%] break-words ${msg.type === "user" ? "bg-blue-500 text-white ml-auto" : "bg-gray-200 text-gray-900 mr-auto"}`}>
