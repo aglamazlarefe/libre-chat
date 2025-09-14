@@ -7,10 +7,20 @@ export default function Nav() {
   const chatConfig = useStore($chatConfig)
 
   createEffect(async () => {
-    const response = await fetch(`${apiUrl}/config`);
+    const response = await fetch(apiUrl, {  // sadece apiUrl, /config ekleme
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            model: "openai/gpt-oss-120b:free",
+            messages: [{ role: "user", content: "Merhaba" }]
+        })
+    });
     const data = await response.json();
-    setConfig(data)
-  });
+    console.log(data);
+    setConfig({ ...$chatConfig.get(), llm: data });
+});
+console.log("API URL:", apiUrl);
+
 
   // const location = useLocation();
   // const active = (path: string) =>
