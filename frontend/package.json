@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "PUBLIC_API_URL=https://chat.semanticscience.org astro dev",
+    "dev": "cross-env PUBLIC_API_URL=https://medical-llm-proxy.vercel.app/api/openrouterProxy astro dev",
     "start": "astro dev",
     "build": "astro check && astro build && rm -rf ../src/libre_chat/webapp && cp -R dist ../src/libre_chat/webapp",
     "preview": "astro preview",
@@ -30,6 +30,7 @@
     "@typescript-eslint/eslint-plugin": "latest",
     "@typescript-eslint/parser": "latest",
     "@vite-pwa/astro": "^0.2.0",
+    "cross-env": "^10.0.0",
     "eslint": "^8.36.0",
     "eslint-plugin-astro": "^0.24.0",
     "eslint-plugin-jsx-a11y": "^6.7.1",
