@@ -5,134 +5,131 @@ import { $chatConfig, apiUrl } from '../components/nanostores';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
+interface Source {
+  metadata: { filename: string, page?: number };
+  page_content?: string;
+}
+
+interface Message {
+  message: string;
+  type: "user" | "bot";
+  sources: Source[];
+}
+
 export default function Chat() {
   const chatConfig = useStore($chatConfig);
 
-  const [messages, setMessages] = createSignal([
-    { message: "How can I help you today?", type: "bot", sources: [] }
+  const [messages, setMessages] = createSignal<Message[]>([
+    { message: "Size bugün nasıl yardımcı olabilirim?", type: "bot", sources: [] }
   ]);
   const [prompt, setPrompt] = createSignal("");
   const [warningMsg, setWarningMsg] = createSignal("");
   const [loading, setLoading] = createSignal(false);
-
   let chatContainer: HTMLDivElement | undefined;
 
-  const appendMessage = (message: string, type = "bot") => {
+  const appendMessage = (message: string, type: "user" | "bot" = "bot") => {
     setMessages(messages => [...messages, { message, type, sources: [] }]);
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+    setTimeout(() => {
+      chatContainer?.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    }, 50);
   };
 
-  const handleInput = (event: any) => setPrompt(event.target.innerText);
-  const handleKeyPress = (event: KeyboardEvent) => {
-    if (event.key === "Enter" && !event.shiftKey) {
+  function handleSubmit(event: Event) {
+    event.preventDefault();
+    submitInput();
+  }
+
+  function handleInput(event: any) {
+    setPrompt(event.target.innerText);
+  }
+
+  function handleKeyPress(event: any) {
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       submitInput();
     }
-  };
-  const handleSubmit = (event: Event) => {
-    event.preventDefault();
-    submitInput();
-  };
+  }
 
-  const submitInput = async () => {
+  async function submitInput() {
     if (loading()) {
       setWarningMsg("⏳ Thinking...");
       return;
     }
-    if (!prompt().trim()) return;
+    if (prompt().trim() !== "") {
+      appendMessage(prompt(), "user");
+      const params = { prompt: prompt() };
 
-    appendMessage(prompt(), "user");
-    setLoading(true);
-    const userPrompt = prompt();
-    setPrompt("");
+      try {
+        setLoading(true);
+        setPrompt("");
+        setWarningMsg("");
 
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "openai/gpt-oss-120b:free",
-          messages: [{ role: "user", content: userPrompt }]
-        })
-      });
-
-      if (!response.ok) throw new Error("API request failed");
-      const data = await response.json();
-      const botReply = data?.choices?.[0]?.message?.content || "No response";
-      appendMessage(botReply, "bot");
-    } catch (err) {
-      console.error(err);
-      appendMessage("An error happened, please retry.", "bot");
-    } finally {
-      setLoading(false);
-      setWarningMsg("");
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params)
+        });
+        const data = await response.json();
+        appendMessage(data?.message || "No response", "bot");
+      } catch (err) {
+        console.error(err);
+        appendMessage("An error happened, please retry.", "bot");
+      } finally {
+        setLoading(false);
+      }
     }
-  };
+  }
+
+  onMount(() => {
+    chatContainer?.scrollTo({ top: chatContainer.scrollHeight });
+  });
 
   return (
-    <main class="flex flex-col overflow-y-auto flex-grow">
-      <div
-        ref={el => chatContainer = el!}
-        id="chat-container"
-        class="flex-grow overflow-y-auto"
-      >
-        <div class="container mx-auto px-2 max-w-5xl">
-          <div
-            class="py-4 text-center font-thin"
-            innerHTML={DOMPurify.sanitize(
-              marked.parse(chatConfig().info.description).toString()
-            )}
-          />
-        </div>
-
-        <div id="chat-thread" class="w-full border-t border-slate-500">
-          <For each={messages()}>{(msg) =>
-            <div class={`border-b border-slate-500 ${msg.type === "user" ? "bg-accent" : "bg-secondary"}`}>
-              <div class="px-2 py-8 mx-auto max-w-5xl">
-                <article
-                  class="prose max-w-full"
-                  innerHTML={DOMPurify.sanitize(marked.parse(msg.message).toString())}
-                />
+    <main class="flex flex-col h-full overflow-hidden p-4 bg-gray-50 dark:bg-gray-900">
+      <div ref={chatContainer} class="flex-grow overflow-y-auto p-4 bg-gray-100 dark:bg-gray-800 rounded-md shadow-inner mb-4">
+        <div class="max-w-3xl mx-auto">
+          
+          <For each={messages()}>
+            {(msg) =>
+              <div class={`mb-2 p-3 rounded-lg max-w-[75%] break-words ${msg.type === "user" ? "bg-blue-500 text-white ml-auto" : "bg-gray-200 text-gray-900 mr-auto"}`}>
+                <article class="prose max-w-full" innerHTML={DOMPurify.sanitize(marked.parse(msg.message).toString())} />
+                {msg.sources.length > 0 &&
+                  <For each={msg.sources}>{(source: Source) =>
+                    <button class="text-xs px-2 py-1 rounded bg-gray-300 hover:bg-gray-400 m-1">
+                      {source.metadata.filename}
+                    </button>
+                  }</For>
+                }
               </div>
-            </div>
-          }</For>
+            }
+          </For>
         </div>
       </div>
 
-      <div>
-        {warningMsg() && (
-          <div class="text-center text-orange-900 bg-orange-300 p-2 text-sm rounded-lg mb-2">
-            {warningMsg()}
-          </div>
-        )}
+      {warningMsg() && 
+        <div class="text-center text-orange-900 font-semibold mb-2">
+          {warningMsg()}
+        </div>
+      }
 
-        <form class="p-2 flex" onSubmit={handleSubmit}>
-          <div class="container flex mx-auto max-w-5xl">
-            <div
-              id="user-input"
-              contentEditable
-              style="height: max-content;"
-              class="flex-grow px-4 py-2 border border-slate-500 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
-              data-placeholder="Ask something..."
-              onInput={handleInput}
-              onKeyDown={handleKeyPress}
-            />
-            <button
-              type="submit"
-              id="submit-btn"
-              class="ml-2 px-4 py-2 rounded-lg text-slate-400 bg-slate-600 hover:bg-slate-700"
-            >
-              {loading() ? (
-                <i class="fas fa-spinner fa-spin"/>
-              ) : (
-                <i class="fas fa-paper-plane"/>
-              )}
-            </button>
-          </div>
-        </form>
+      <div class="flex flex-wrap gap-2 justify-center mb-2">
+        <For each={chatConfig().info.examples}>{example =>
+          <button onClick={() => { setPrompt(example); submitInput(); }} 
+                  class="px-3 py-1 rounded bg-gray-300 hover:bg-gray-400 text-sm text-black ">
+            {example}
+          </button>
+        }</For>
       </div>
+
+      <form class="flex items-center max-w-3xl mx-auto" onSubmit={handleSubmit}>
+        <div id="user-input" contentEditable={true} 
+             class="flex-grow px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+             onInput={handleInput} onKeyDown={handleKeyPress} 
+             role="textbox" aria-multiline="true" />
+        <button type="submit" class="ml-2 px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600">
+          {loading() ? "..." : "Send"}
+        </button>
+      </form>
     </main>
   );
 }

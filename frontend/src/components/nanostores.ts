@@ -9,13 +9,17 @@ interface ChatConfig {
 // api: process.env.PUBLIC_API_URL ? process.env.PUBLIC_API_URL : 'https://chat.semanticscience.org'
 export const $chatConfig = atom<ChatConfig>({
   info: {
-    title: "Libre Chat",
-    description: "Open source chatbot",
-    repository_url: "https://github.com/vemonet/libre-chat",
-    favicon: "https://raw.github.com/vemonet/libre-chat/main/docs/docs/assets/logo.png",
+    title: "Medical LLM Chat",
+    description: "Open source medical LLM chatbot.",
+    repository_url: "https://github.com/aglamazlarefe/libre-chat",
     examples: [
-      "What is the capital of the Netherlands?"
-    ]
+  "Diyabetin yaygın belirtileri nelerdir?",
+  "Tip 1 ve Tip 2 diyabet arasındaki fark nedir?",
+  "Yüksek tansiyon değerlerini nasıl yorumlamalıyım?",
+  "Obezite hastası için hangi yaşam tarzı değişiklikleri önerilir?",
+  "İbuprofenin yaygın yan etkileri nelerdir?",
+  "50 yaş üstü yetişkinler için hangi aşılar önerilir?",
+  "Nefes darlığının olası nedenleri nelerdir?"]
   },
   llm: {},
   vector: {},
