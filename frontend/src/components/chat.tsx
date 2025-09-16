@@ -72,8 +72,11 @@ async function submitInput() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-oss-120b:free",
-        messages: [{ role: "user", content: trimmedPrompt }]
+        model:  "openai/gpt-oss-20b:free",
+        messages: [
+          
+          { role: "system", content: "You are a medical support assistant.You analyze patients symptoms and provide informative, safe, and clear guidance. Respond in a way that is understandable, empathetic, and professional. You do not provide clinical decisions; only offer clinical advice and informational support. please answer in Turkish language." },
+          { role: "user", content: trimmedPrompt }]
       })
     });
 
